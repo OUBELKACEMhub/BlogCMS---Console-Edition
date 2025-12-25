@@ -1,280 +1,253 @@
 <?php
-    //class User  
-class User { 
-     protected int $id  ;
-     protected string $username ;
-     protected string $email ;
-     protected  string $password ;
-     protected string $role;
-     public Article $articles=[];
-     
-    function __construct($id,$username,$email,$password,$role,$articles){
-         $this->id=$id;
-         $this->username=$username;
-         $this->email=$email;
-         $this->password=$password;
-         $this->role=$role;
-         $this->articles=$articles;
-    }
-    
-    public function login($username1,$password1):boolean
-    {
-       ( $this->username==$username1 && $this->password==$password1) ? true : false ;
-    }
-
-   public function logout(){
-    echo "\n Déconnexion en cours...\n";
-   }
-
-
-    public function afficherUsers() {
-        return $this->username . ' ' . $this->email .' '. $this->password .' '.$this->role."<br>";
-    }
-
-    public function estAuteur() : bool {
-        if($this->role=="auteur")
-        return true;
-        return false;
-    }
-
-     public function estAdmin() : bool {
-        if($this->role=="admin")
-        return true;
-        return false;
-    }
-
-     public function estEditeur() : bool {
-        if($this->role=="editeur")
-        return true;
-        return false;
-    }
-
- 
-    public function lireArticles($articles) {
-    foreach ($articles as $article) { 
-        echo "
-        title   : {$article['title']}\n
-        content : {$article['content']}\n
-        status  : {$article['status']}\n
-        auteur  : {$article['auteur']}\n
-        category: {$article['category']}\n\n
-        ";
-  }
-}
-
-
-    public function createCommantaires(Commentaire  $commente){
-         array_push($commentaires,$commente);
-    }
-    
-   public function getUsername(){
-     return $this->username;
-   }
-   public function getByid(){
-     return $this->id;
-   }
-
-   public function getEmail(){
-    return $this->email;
-   }
-
-    public function getPassword(){
-    return $this->password;
-   }
-
-    
-    }
-                                               // Class Moderateur
-    class Moderateur extends User{
-    public array  $categories=[];
-     public array  $commantaires=[]
-    function __construct($id,$username,$email,$password){
-        User::__construct($id,$username,$email,$password,$role,$articles);
-        $this->categories=$categories;
-        $this->commantaires=$commantaires;
-    }
-
-public function  AjouterArticle(Article $Aticle){       
-        if( $Aticle){
-            array_push($drafts,$articles);
-        }     
-    }
-
-  
-
-    public function  createCategory(Category  $Category) : void{
-       array_push($categories,$category);
-    }
-
-
-//supprimer les articles
-    public function  SupprimerArticle(){
-          for( $art=0;$art<count($articles);$art++){
-            if($article[$art]->getByid()==$this->id){
-             $unset($article[$art]);
-             exit;
-            }        
-    }
-
-//modifier les articles
-      public function  ModifierArticleById(Article $newaAticle){   
-           foreach($articles as $article){
-            if($article->getByid()==$this->id){
-             $articl=$newArticle;
-             exit;
-            }
-        }
-            echo "article inrouvable!!";
-       
-    }
-    }}
-    
-                                                                //  Class Auteur
-    class Auteur extends User {       
-        function __construct($id,$username,$email,$password,$role,$articles){
-        __construct($id,$username,$email,$password,$role,$articles);
-    }
-
-
-    public function createArticle(Article  $article) : void {
-       if($article->getByid()==$this->id)
-       array_push($articles,$article);
-      else
-      echo "impossible de cree cette article";
-    }
-
-      public function modifierArticleById(Article $newArticle) :bool {
-    foreach ($this->articles as $index => $article) {
-        if ($article->getId() === $newArticle->getId()) {
-            $this->articles[$index] = $newArticle;
-            return true;
-        }
-        return false;
-    }
-
-    echo "Article introuvable !!";
-    return false;
-}
-
-    }
-
-
-                                                                   //   class Editeur
-    class Editeur extends Moderateur{
-
-      
-           function __construct($id,$username,$email,$password,$role,$articles){
-         Moderateur::__construct($id,$username,$email,$password,$role,$articles);    
-    }
-
-}
-    class Admin extends Moderateur{
-      
-
-           function __construct($id,$username,$email,$password,$role,$articles){
-         Moderateur::__construct($id,$username,$email,$password,$role,$articles);    
-    }   
-    }
-
-    public function cree_utilisateurs(User $user){
-        array_push($users,$user);
-    }
-
-
-    public function supprimer_utilisateurs($user){
-        foreach($i=0;$i<count($users);$i++){
-            if($users[$i]==$user){
-                unset($users[$i]);
-            }
-        }
-    }
-
-}
-
-class Category
- {
+// Class Commentaire
+class Category {
+    public int $id;
     public string $name;
-    public function __construct($name) {
+
+    public function __construct($id, $name) {
+        $this->id = $id;
         $this->name = $name;
     }
 }
 
-class commentaires 
-{
-      protected int $id;
-      protected string $content;
-      protected string $date_cr;
+// Class Commentaire
+class Commentaire {
+    protected int $id;
+    public string $content;
+    
+    public function __construct($id, $content) {
+        $this->id = $id;
+        $this->content = $content;
+    }
 }
 
-
-
-                                                   //class Article
+// 3. Class Article
 class Article {
     private int $id;
     public string $title;
     public string $content;
-    public string $status;
-    public string $auteur;
-    public Category $category=[];
-    public Comments $comments=[];
+    public string $status; 
+    public string $auteurName;
+    public string $categories;
 
-    public function __construct($id, $title, $content, $status, $auteur, $category) {
+    public function __construct($id, $title, $content, $status, $auteurName, $categories = "", $comments = []) {
         $this->id = $id;
         $this->title = $title;
         $this->content = $content;
         $this->status = $status;
-        $this->auteur = $auteur;
-        $this->category = $category;
-        $this->comments = $comments;
+        $this->auteurName = $auteurName;
+        $this->categories = $categories;
     }
 
-    public function getId() {
-        return $this->id;
+    public function getId() { return $this->id; }
+    
+    public function getTitle() { return $this->title; }
+    
+    public function getAuteurName() { return $this->auteurName; }
+}
+
+//Class User
+class User { 
+    protected int $id;
+    protected string $username;
+    protected string $email;
+    protected string $password;
+    protected string $role;
+    
+    function __construct($id, $username, $email, $password, $role){
+         $this->id = $id;
+         $this->username = $username;
+         $this->email = $email;
+         $this->password = $password;
+         $this->role = $role;
+    }
+
+    public function afficherUser() {
+        return "ID: {$this->id} ,username: {$this->username} , Role: {$this->role} <br>";
+    }
+
+    public function estAuteur(): bool { return $this->role === "auteur"; }
+    public function estAdmin(): bool { return $this->role === "admin"; }
+    public function estEditeur(): bool { return $this->role === "editeur"; }
+
+    public function getUsername(){ return $this->username; }
+    public function getId(){ return $this->id; }
+    
+    
+    public function getPassword(){ return $this->password; }
+}
+
+// Class Auteur
+class Auteur extends User {
+    public array $myArticles = [];
+
+    function __construct($id, $username, $email, $password, $role = "auteur"){
+        parent::__construct($id, $username, $email, $password, $role);
+    }
+
+    public function createArticle(Article $article) {
+        $this->myArticles[] = $article;
+        echo "Article '{$article->title}' créé par {$this->username}.\n";
+    }
+
+    public function afficherMesArticles() {
+        echo "\n--- Articles de {$this->username} ---\n";
+        foreach ($this->myArticles as $article) { 
+            echo "Title: {$article->title} (Status: {$article->status})\n";
+        }
+    }
+}
+
+//Class Moderateur
+class Moderateur extends User {
+    function __construct($id, $username, $email, $password, $role = "moderateur"){
+        parent::__construct($id, $username, $email, $password, $role);
+    }
+
+    public function supprimerArticle(int $articleId, array &$articleList){
+        foreach($articleList as $index => $article){
+            if($article->getId() == $articleId){
+                unset($articleList[$index]);
+                echo "Article ID $articleId supprimé par le modérateur.\n";
+                return;
+            }
+        }
+        echo "Article introuvable.\n";
+    }
+}
+
+
+class Editeur extends Moderateur {
+    function __construct($id, $username, $email, $password){
+        parent::__construct($id, $username, $email, $password, "editeur");    
+    }   
+}
+
+
+class Admin extends Moderateur {
+    function __construct($id, $username, $email, $password) {
+        parent::__construct($id, $username, $email, $password, "admin");    
+    }
+
+    public function cree_utilisateurs(User $user, array &$userTable) {
+        $userTable[] = $user;
+        echo "Utilisateur {$user->getUsername()} a été ajouté.\n";
+    }
+
+    public function supprimer_utilisateurs($userId, array &$userTable){
+        foreach($userTable as $i => $user){
+            if($user->getId() == $userId){
+                unset($userTable[$i]);
+                echo "Utilisateur ID $userId supprimé.\n";
+                return;
+            }
+        }
+        echo "Utilisateur non trouvé.\n";
+    }
+}
+
+class Collection {
+
+    private static $instance = null;
+    public array $users = [];
+    public array $articles = [];
+    private array $categories = [];
+    private $current_user = null;
+
+    private function __construct() {
+        $this->users = [
+            new Auteur(1, "alice", "ahmedoub@gmail.com", "pass123", "admin"),
+            new Auteur(3, "bob", "bob@gmail.com", "pass123", "admin"),
+            new Auteur(4, "john", "john@gmail.com", "pass123", "admin")
+        ];
+
+        
+        $this->articles = [
+            new Article(15, "the range", "....", "published", "alice", "General"),
+            new Article(22, "power", "....", "draft", "Amine", "Sport"),
+            new Article(1, "Worlf cup 2022", "....", "published", "aya", "Finance")
+        ];
+
+        $this->categories = [
+            new Category(2, "sport"),
+            new Category(3, "finance")
+        ];
+
+        
+    }
+
+    public  function getTableUsers(){
+            return $this->users;
+        }
+
+    public static function getInstance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function login($usernameInput, $passwordInput): bool {
+        foreach ($this->users as $user) {
+            if (
+                $user->getUsername() === $usernameInput &&
+                $user->getPassword() === $passwordInput 
+            ) {
+                $this->current_user = $user;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function logout(): void {
+        $this->current_user = null;
+    }
+
+    public function getCurrentUser() {
+        return $this->current_user;
+    }
+
+    public function isLoggedIn(): bool {
+        return $this->current_user !== null;
+    }
+
+    public function displayAllArticles(): void {
+        foreach ($this->articles as $article) {
+            echo
+                $article->getId() . " - " .
+                $article->getTitle() . " par " .
+                $article->getAuteurName() . 
+                "<br>\n";
+        }
     }
 }
 
 
 
+$collection = Collection::getInstance();
 
-$user1=(1, "ahmed", "ahmed@gmail.com", "123456", "user",$article[comments[],comment_users[],categorie[]]);
+$result = $collection->login('alice','pass123');
+echo $result ? "Connexion alice OK \n" : "Échec connexion alice\n";
 
+// Test 2: Connexion échouée
+$result = $collection->login('alice', 'wrongpass');
+echo !$result ? "Rejet mauvais mot de passe OK \n" : "Problème vérification\n";
 
+// Test 3: Vérification état connexion
+if ($collection->isLoggedIn()) {
+    $user = $collection->getCurrentUser();
+    echo "Utilisateur connecté: " . $user->getUsername() . "\n"; // Typo fixed: usernam -> getUsername()
+}
 
+// Test 4: Display Articles
+echo "\n--- Liste des Articles ---\n";
+$collection->displayAllArticles();
 
+// Test 5: Déconnexion
+$collection->logout();
+echo !$collection->isLoggedIn() ? "Déconnexion OK\n" : "Problème déconnexion\n";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-?> -->
+$user=new Admin(2, "ayoub", "ayoub@gmail.com","12345678");
+$user->supprimer_utilisateurs(1,$collection->getTableUsers());
+?>
