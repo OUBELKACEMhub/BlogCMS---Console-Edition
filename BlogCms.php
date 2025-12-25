@@ -1,17 +1,20 @@
-<?php  
+<?php
+    //class User  
 class User { 
      protected int $id  ;
      protected string $username ;
      protected string $email ;
      protected  string $password ;
      protected string $role;
+     public Article $articles=[];
      
-    function __construct($id,$username,$email,$password,$role){
+    function __construct($id,$username,$email,$password,$role,$articles){
          $this->id=$id;
          $this->username=$username;
          $this->email=$email;
          $this->password=$password;
          $this->role=$role;
+         $this->articles=$articles;
     }
     
     public function login($username1,$password1):boolean
@@ -24,8 +27,6 @@ class User {
    }
 
 
-
-   
     public function afficherUsers() {
         return $this->username . ' ' . $this->email .' '. $this->password .' '.$this->role."<br>";
     }
@@ -83,14 +84,14 @@ class User {
 
     
     }
-
+                                               // Class Moderateur
     class Moderateur extends User{
-    public array $articles=[];
     public array  $categories=[];
+     public array  $commantaires=[]
     function __construct($id,$username,$email,$password){
-        User::__construct($id, $username, $email, $password);
-        $this->articles=$articles;
-        $this->categories=$categories;   
+        User::__construct($id,$username,$email,$password,$role,$articles);
+        $this->categories=$categories;
+        $this->commantaires=$commantaires;
     }
 
 public function  AjouterArticle(Article $Aticle){       
@@ -124,16 +125,14 @@ public function  AjouterArticle(Article $Aticle){
             }
         }
             echo "article inrouvable!!";
-
+       
     }
     }}
     
-
-    class Auteur extends User {
-        public $articles=[];        
+                                                                //  Class Auteur
+    class Auteur extends User {       
         function __construct($id,$username,$email,$password,$role,$articles){
-         User::__construct($id, $username, $email, $password, $role);
-         $this->articles = $articles;   
+        __construct($id,$username,$email,$password,$role,$articles);
     }
 
 
@@ -160,23 +159,24 @@ public function  AjouterArticle(Article $Aticle){
     }
 
 
-
+                                                                   //   class Editeur
     class Editeur extends Moderateur{
 
       
-           function __construct($id,$username,$email,$password,$role){
-         Moderateur::__construct($id, $username, $email, $password, $role);    
+           function __construct($id,$username,$email,$password,$role,$articles){
+         Moderateur::__construct($id,$username,$email,$password,$role,$articles);    
     }
 
 }
     class Admin extends Moderateur{
       
 
-           function __construct($id,$username,$email,$password){
-         Moderateur::__construct($id, $username, $email, $password, $role);    
+           function __construct($id,$username,$email,$password,$role,$articles){
+         Moderateur::__construct($id,$username,$email,$password,$role,$articles);    
+    }   
     }
 
-    public function cree_utilisateurs($user){
+    public function cree_utilisateurs(User $user){
         array_push($users,$user);
     }
 
@@ -191,20 +191,55 @@ public function  AjouterArticle(Article $Aticle){
 
 }
 
+class Category
+ {
+    public string $name;
+    public function __construct($name) {
+        $this->name = $name;
+    }
+}
 
-class Artile{
-    
+class commentaires 
+{
+      protected int $id;
+      protected string $content;
+      protected string $date_cr;
+}
+
+
+
+                                                   //class Article
+class Article {
+    private int $id;
+    public string $title;
+    public string $content;
+    public string $status;
+    public string $auteur;
+    public Category $category=[];
+    public Comments $comments=[];
+
+    public function __construct($id, $title, $content, $status, $auteur, $category) {
+        $this->id = $id;
+        $this->title = $title;
+        $this->content = $content;
+        $this->status = $status;
+        $this->auteur = $auteur;
+        $this->category = $category;
+        $this->comments = $comments;
+    }
+
+    public function getId() {
+        return $this->id;
+    }
 }
 
 
 
 
+$user1=(1, "ahmed", "ahmed@gmail.com", "123456", "user",$article[comments[],comment_users[],categorie[]]);
 
-$users = [
-    new User(1, "ahmed", "ahmed@gmail.com", "123456", "user"),
-    new User(2, "fatima", "fatima@gmail.com", "fatima@2024", "auteur"),
-    new User(3, "admin01", "admin@site.com", "admin123", "admin")
-];
+
+
 
 
 
