@@ -73,13 +73,14 @@ class User {
     public function getUsername(){ return $this->username; }
     public function getId(){ return $this->id; }
     
-    
-    public function getPassword(){ return $this->password; }
+   public function getEmail(){return $this->email;}
+    public function getPassword(){ return $this->password;}
+    public function getRole(){return $this->role;} 
 }
 
 // Class Auteur
 class Auteur extends User {
-    public array $myArticles = [];
+    
 
     function __construct($id, $username, $email, $password, $role = "auteur"){
         parent::__construct($id, $username, $email, $password, $role);
@@ -104,16 +105,7 @@ class Moderateur extends User {
         parent::__construct($id, $username, $email, $password, $role);
     }
 
-    public function supprimerArticle(int $articleId, array &$articleList){
-        foreach($articleList as $index => $article){
-            if($article->getId() == $articleId){
-                unset($articleList[$index]);
-                echo "Article ID $articleId supprimé par le modérateur.\n";
-                return;
-            }
-        }
-        echo "Article introuvable.\n";
-    }
+   
 }
 
 
@@ -134,16 +126,7 @@ class Admin extends Moderateur {
         echo "Utilisateur {$user->getUsername()} a été ajouté.\n";
     }
 
-    public function supprimer_utilisateurs($userId, array &$userTable){
-        foreach($userTable as $i => $user){
-            if($user->getId() == $userId){
-                unset($userTable[$i]);
-                echo "Utilisateur ID $userId supprimé.\n";
-                return;
-            }
-        }
-        echo "Utilisateur non trouvé.\n";
-    }
+    
 }
 
 class Collection {
@@ -155,10 +138,15 @@ class Collection {
     private $current_user = null;
 
     private function __construct() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $this->users = [
-            new Auteur(1, "alice", "ahmedoub@gmail.com", "pass123", "admin"),
-            new Auteur(3, "bob", "bob@gmail.com", "pass123", "admin"),
-            new Auteur(4, "john", "john@gmail.com", "pass123", "admin")
+            new Admin(1, "alice", "ahmedoub@gmail.com", "pass123", "Admin"),
+            new Auteur(3, "bob", "bob@gmail.com", "pass123", "Admin"),
+            new Auteur(4, "john", "john@gmail.com", "pass123", "Admin"), 
+            new Admin(2, "ayoub", "ayoub@gmail.com","12345678","Auteur"),
+            new Editeur(5, "ahmed", "oubelkacem@gmail.com","11111111","Editeur")
         ];
 
         
@@ -172,7 +160,10 @@ class Collection {
             new Category(2, "sport"),
             new Category(3, "finance")
         ];
-
+  
+    if (isset($_SESSION['user_id'])) {
+            $this->restoreSessionUser($_SESSION['user_id']);
+        }
         
     }
 
@@ -189,11 +180,11 @@ class Collection {
 
     public function login($usernameInput, $passwordInput): bool {
         foreach ($this->users as $user) {
-            if (
-                $user->getUsername() === $usernameInput &&
-                $user->getPassword() === $passwordInput 
-            ) {
+            if ( $user->getUsername() === $usernameInput && $user->getPassword() === $passwordInput ) 
+                {
                 $this->current_user = $user;
+                $_SESSION['user_id'] = $user->getId();
+                $_SESSION['username'] = $user->getUsername();
                 return true;
             }
         }
@@ -202,6 +193,7 @@ class Collection {
 
     public function logout(): void {
         $this->current_user = null;
+        session_unset();
     }
 
     public function getCurrentUser() {
@@ -210,18 +202,98 @@ class Collection {
 
     public function isLoggedIn(): bool {
         return $this->current_user !== null;
+
     }
 
     public function displayAllArticles(): void {
+        echo "ID   | Title                | Author          \n";
+        echo "-----+----------------------+-----------------\n";
         foreach ($this->articles as $article) {
-            echo
-                $article->getId() . " - " .
-                $article->getTitle() . " par " .
-                $article->getAuteurName() . 
-                "<br>\n";
+            
+            printf(
+                "%-4s | %-20s | %-15s \n", 
+                $article->getId(), 
+                substr($article->getTitle(), 0, 20), 
+                $article->getAuteurName()
+            );
         }
     }
+     public function displayAllUsers(): void {
+        echo "\nID   | Username             | Email                     | Role      \n";
+    echo "-----+----------------------+---------------------------+-----------\n";
+    foreach ($this->users as $user) {
+        printf(
+            "%-4s | %-20s | %-25s | %-9s \n", 
+            $user->getId(), 
+            substr($user->getUsername(), 0, 20), 
+            substr($user->getEmail(), 0, 25),
+            $user->getRole()
+        );
+    }
+    }
+
+
+    private function restoreSessionUser($id) {
+        foreach ($this->users as $user) {
+            if ($user->getId() == $id) {
+                $this->current_user = $user;
+                return;
+            }
+        }
+    }
+
+     public function supprimerArticle(int $articleId){
+        if (!$this->isLoggedIn() && !($this->current_user instanceof Admin) || !($this->current_user instanceof Editeur)) {
+            echo "Erreur: you don't have  permession to delete this article.\n";
+            return;
+        }
+        foreach($this->articles as $index => $article){
+            if($article->getId() == $articleId){
+                unset($this->articles[$index]);
+                $r=$this->current_user->getRole();
+                $name=$this->current_user->getUsername();
+                echo "Article ID $articleId supprimé par $name  de role $r .\n";
+                return;
+            }
+        }
+        echo "Article introuvable.\n";
+    }
+     
+      public function supprimer_utilisateurs($userId) {
+        if (!$this->isLoggedIn() || !($this->current_user instanceof Admin)) {
+            echo "Erreur: Seul un Admin connecté peut supprimer des utilisateurs.\n";
+            return;
+        }
+
+        foreach ($this->users as $i => $user) {
+            if ($user->getId() == $userId) {
+                unset($this->users[$i]);
+                
+                $this->users = array_values($this->users); 
+                
+                echo "Succès: Utilisateur ID $userId supprimé.\n";
+                return;
+            }
+        }
+        
+        echo "Erreur: Utilisateur ID $userId introuvable.\n";
+    }
+
+     public function cree_utilisateurs(User $user) {
+     if (!$this->isLoggedIn() || !($this->current_user instanceof Admin)) {
+            echo "Erreur: Seul un Admin connecté peut cree des utilisateurs.\n";
+            return;
+        }
+        $this->users[]= $user;
+        echo "Utilisateur {$user->getUsername()} a été ajouté.\n";
+    }
 }
+
+
+
+    
+    
+    
 
 
 
@@ -248,6 +320,29 @@ $collection->displayAllArticles();
 $collection->logout();
 echo !$collection->isLoggedIn() ? "Déconnexion OK\n" : "Problème déconnexion\n";
 
-$user=new Admin(2, "ayoub", "ayoub@gmail.com","12345678");
-$user->supprimer_utilisateurs(1,$collection->getTableUsers());
+// $collection->logout();
+  if($collection->login("alice", "pass123")) 
+    echo "connected";
+$collection->logout();
+$result = $collection->login('ahmed','11111111');
+echo $result ? "Connexion  OK \n" : "Échec connexion alice\n";
+$collection->supprimerArticle(22);
+$collection->displayAllArticles();
+$collection->logout();
+$result = $collection->login("alice", "pass123");
+echo !$result ? "Rejet mauvais mot de passe OK \n" : "Problème vérification\n";
+ $user=new Admin (2, "leila", "leila@gmail.com", "12345678", "Admin");
+$collection->cree_utilisateurs($user);
+
+
+
+
+
+// $collection->displayAllUsers();
+// $collection->supprimer_utilisateurs(3);
+// $collection->displayAllUsers();
+// $collection->logout();
+// $result = $collection->login('ayoub','12345678');
+// echo $result ? "Connexion  OK \n" : "Échec connexion \n";
+// $collection->supprimer_utilisateurs(3);
 ?>
