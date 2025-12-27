@@ -9,6 +9,8 @@ class Category {
         $this->id = $id;
         $this->name = $name;
     }
+
+    public function getName(){return $this->name;}
 }
 
 // Class Commentaire
@@ -26,6 +28,7 @@ class Commentaire {
     public function getId(){return $this->id;}
     public function getContent() {return $this->content;}
     public function getAuteur() {return $this->auteur;}
+    public function UpdateComment($newContent){ $this->content=$newContent;}
 }
 
 // 3. Class Article
@@ -173,13 +176,33 @@ class Collection {
 
     
      public function cree_Category($name){
-        if($this->current_user instanceof Admin && $this->current_user instanceof Editeur){
-               $cat1=new Category(rand(1, 1000), $name)
+        if($this->current_user instanceof Admin || $this->current_user instanceof Editeur){
+               $cat1=new Category(rand(1, 1000), $name);
                $this->categories[]=$cat1;
                echo "Category a ete ajouter avec Succès";
+               return;
             }
-       
+             echo "echec";
     }
+
+ public function afficher_Category(){
+     echo "--------------------------------------------\n";
+        foreach($this->categories as $cat){                             
+            echo  $cat->getName()."\n";
+        }
+    }
+
+     public function afficher_commentaires() {
+        echo "--------------------------------------------\n";
+        foreach ($this->articles as $article) {
+            foreach ($article->getComments() as $cmt) {
+                if ($cmt instanceof Commentaire) {
+                    echo "[ID: " . $cmt->getId() . "] " . $cmt->getContent() . "\n";
+                }
+            }
+        }
+    }
+
 
     public function afficherMesArticles(){
         echo "\n--- Articles de {$this->current_user->getUsername()} ---\n";
@@ -195,6 +218,8 @@ class Collection {
             );}
         }
     }
+
+
 
 
 
@@ -260,6 +285,20 @@ class Collection {
         }
     }
 
+
+  public function Statistique() {
+        echo "\n--- STATISTIQUES DU BLOG ---\n";
+        printf("%-18s | %-22s | %-20s \n", "Nb Articles", "Nb Utilisateurs", "Nb Categories");
+        echo "-------------------+------------------------+---------------------\n";
+        
+        printf(
+            "%-18d | %-22d | %-20d \n", 
+            count($this->articles), 
+            count($this->users), 
+            count($this->categories)
+        );
+        echo "--------------------------------------------------------------\n";
+    }
       
      public function displayAllUsers(): void {
         echo "\nID   | Username             | Email                     | Role      \n";
@@ -302,13 +341,27 @@ class Collection {
     }
 
 
+
+    function modifiercomments($id,$newContent){
+    if(($this->current_user instanceof Admin) || ($this->current_user instanceof Editeur)){
+         foreach($this->articles as $article){
+        foreach ($article->getComments() as $cmt){
+            if($cmt instanceof Commentaire && $cmt->getId()==$id){
+            $cmt->UpdateComment($newContent);
+                echo "Succès : Le commentaire ID $id a été modifié.\n";
+            return;
+         }
+        }  
+     }
+     echo "Echec de modifier commentaire  ";
+    }}
+
  
 
     public function supprimerArticleParAuteur(int $articleId){
         if (!$this->isLoggedIn() && !($this->current_user instanceof Auteur)) {
             echo "Erreur: you don't have  permession to delete this article.\n";
             return;
-        
      }
         foreach($this->articles as $index => $article){
             if($article->getId() == $articleId && $article->getAuteurName()==$this->current_user->getUsername()){
@@ -473,6 +526,8 @@ class Menu {
         echo "2. Voir les articles (Lecture seule)\n";
         echo "3.cree un commentaire \n";
         echo "4.Afficher les commentaire\n";
+        echo "5.afficher les categories\n";
+        echo "6.Statistiques\n";
         echo "0. Quitter\n"; 
         echo "----------------------\n";
 
@@ -499,6 +554,14 @@ class Menu {
                 case '4':
                 $this->collection->Display_Commentaires();
                 $this->pause();
+                break; 
+                case '5':
+                $this->collection->afficher_Category();
+                $this->pause();
+                break;
+                case '6':
+                $this->collection->Statistique();
+                $this->pause();
                 break;   
             case '0':
                 echo "Au revoir !\n";
@@ -519,21 +582,23 @@ class Menu {
             echo "2. [ADMIN] Afficher les utilisateurs\n";
             echo "3. [ADMIN] Créer un utilisateur\n";
             echo "4. [ADMIN] Supprimer un utilisateur\n";
+
         }
         
 
         if ($user instanceof Admin || $user instanceof Editeur) {
-            echo "6. [GESTION] Supprimer un article (Global)\n";
-            echo "5  [ADMIN] Cree un categorie\n";
+            echo "5. [GESTION] Supprimer un article (Global)\n";
+            echo "11. [GESTION] cree un category (Global)\n";
+            echo "12. [GESTION] modifier un commentaire (Global)\n";
         }
 
 
         if ($user instanceof Auteur) {
-            echo "7. [AUTEUR] Mes articles\n";
-            echo "8. [AUTEUR] Supprimer un de mes articles\n";
+            echo "6. [AUTEUR] Mes articles\n";
+            echo "7. [AUTEUR] Supprimer un de mes articles\n";
         }
 
-
+        echo "8. Afficher tous les categories\n";
         echo "9. Se déconnecter\n";
         echo "0. Quitter\n";
         echo "----------------------\n";
@@ -556,12 +621,8 @@ class Menu {
                     $this->creerUtilisateurWizard();
                 } else { echo "Accès refusé.\n"; }
                 break;
-            case '4':
-                $nome = $this->prompt("title de categorie :");
-                $this->collection->cree_Category($nome);
-            break;
 
-            case '5':
+            case '4':
                 if ($user instanceof Admin) {
                     $this->collection->displayAllUsers();
                     $id = (int)$this->prompt("ID de l'utilisateur à supprimer");
@@ -569,27 +630,44 @@ class Menu {
                 } else { echo "Accès refusé.\n"; }
                 break;
 
-            case '6':
+            case '5':
                 if ($user instanceof Admin || $user instanceof Editeur) {
                     $this->collection->displayAllArticles();
                     $id = (int)$this->prompt("ID de l'article à supprimer");
                     $this->collection->supprimerArticle($id);
                 } else { echo "Accès refusé.\n"; }
                 break;
+            case '11':
+                    if ($user instanceof Admin || $user instanceof Editeur) {
+                      $title = $this->prompt("donner le titre:");  
+                    $this->collection->cree_Category($title);
+                } else { echo "Echec !!.\n"; }
             
-            case '7':
+
+            case '12':
+                    if ($user instanceof Admin || $user instanceof Editeur) {
+                        $this->collection->afficher_commentaires();
+                      $id = $this->prompt("donner id de commentaire a modifier :"); 
+                      $newContent = $this->prompt("donner nouveau commentaire :"); 
+                    $this->collection->modifiercomments($id,$newContent);
+                } else { echo "Echec !!.\n"; }    
+            case '6':
                 if ($user instanceof Auteur) {
                     $this->collection->afficherMesArticles(); 
                 }
                 break;
 
-            case '8':
+            case '7':
                 if ($user instanceof Auteur) {
                     $this->collection->displayAllArticles();
                     $id = (int)$this->prompt("ID de VOTRE article à supprimer");
                     $this->collection->supprimerArticleParAuteur($id);
                 }
                 break;
+
+            case '8':
+            $this->collection->afficher_Category();
+            break;
 
             case '9':
                 $this->collection->logout();
