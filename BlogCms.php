@@ -45,7 +45,7 @@ class Article {
         $this->status = $status;
         $this->auteurName = $auteurName;
         $this->categories = $categories;
-        $this->comments= $comments;
+        $this->comments[]= $comments;
     }
 
     public function getId() { return $this->id; }
@@ -154,7 +154,8 @@ class Collection {
 
         
         $this->articles = [
-            new Article(15, "the range", "....", "published", "bob", "General"),
+            new Article(15, "the range", "....", "published", "bob", "General",new Commentaire(101, "article exelent", "bob"),
+                new Commentaire(102, "bon article", "bob")),
             new Article(22, "power", "....", "draft", "john", "Sport"),
             new Article(1, "Worlf cup 2022", "....", "published", "aya", "Finance")
         ];
@@ -168,6 +169,16 @@ class Collection {
             $this->restoreSessionUser($_SESSION['user_id']);
         }
         
+    }
+
+    
+     public function cree_Category($name){
+        if($this->current_user instanceof Admin && $this->current_user instanceof Editeur){
+               $cat1=new Category(rand(1, 1000), $name)
+               $this->categories[]=$cat1;
+               echo "Category a ete ajouter avec Succès";
+            }
+       
     }
 
     public function afficherMesArticles(){
@@ -339,6 +350,8 @@ class Collection {
         echo "Utilisateur {$user->getUsername()} a été ajouté.\n";
     }
 
+
+
    public function RechrecheArticleByid($id){
     foreach($this->articles as $art){
             if($art->getId()==$id){
@@ -358,6 +371,9 @@ class Collection {
         }
          echo "article introuvable!!";
     }
+
+
+
 
 
    public function Display_Commentaires() {
@@ -507,13 +523,14 @@ class Menu {
         
 
         if ($user instanceof Admin || $user instanceof Editeur) {
-            echo "5. [GESTION] Supprimer un article (Global)\n";
+            echo "6. [GESTION] Supprimer un article (Global)\n";
+            echo "5  [ADMIN] Cree un categorie\n";
         }
 
 
         if ($user instanceof Auteur) {
-            echo "6. [AUTEUR] Mes articles\n";
-            echo "7. [AUTEUR] Supprimer un de mes articles\n";
+            echo "7. [AUTEUR] Mes articles\n";
+            echo "8. [AUTEUR] Supprimer un de mes articles\n";
         }
 
 
@@ -539,8 +556,12 @@ class Menu {
                     $this->creerUtilisateurWizard();
                 } else { echo "Accès refusé.\n"; }
                 break;
-
             case '4':
+                $nome = $this->prompt("title de categorie :");
+                $this->collection->cree_Category($nome);
+            break;
+
+            case '5':
                 if ($user instanceof Admin) {
                     $this->collection->displayAllUsers();
                     $id = (int)$this->prompt("ID de l'utilisateur à supprimer");
@@ -548,7 +569,7 @@ class Menu {
                 } else { echo "Accès refusé.\n"; }
                 break;
 
-            case '5':
+            case '6':
                 if ($user instanceof Admin || $user instanceof Editeur) {
                     $this->collection->displayAllArticles();
                     $id = (int)$this->prompt("ID de l'article à supprimer");
@@ -556,13 +577,13 @@ class Menu {
                 } else { echo "Accès refusé.\n"; }
                 break;
             
-            case '6':
+            case '7':
                 if ($user instanceof Auteur) {
                     $this->collection->afficherMesArticles(); 
                 }
                 break;
 
-            case '7':
+            case '8':
                 if ($user instanceof Auteur) {
                     $this->collection->displayAllArticles();
                     $id = (int)$this->prompt("ID de VOTRE article à supprimer");
