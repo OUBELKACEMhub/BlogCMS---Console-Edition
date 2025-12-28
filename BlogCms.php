@@ -46,13 +46,13 @@ class Article {
         $this->status = $status;
         $this->auteurName = $auteurName;
         $this->categories = $categories;
-        if (is_array($comments) && !empty($comments)) {
-            if ($comments instanceof Commentaire) {
-                $this->comments[] = $comments;
-            } else {
-                $this->comments = $comments;
-            }
+        if (!empty($comments)) {
+        if (is_array($comments)) {
+            $this->comments = $comments; 
+        } elseif ($comments instanceof Commentaire) {
+            $this->comments[] = $comments;
         }
+    }
 
        
     }
@@ -154,8 +154,8 @@ class Collection {
 
         
         $this->articles = [
-            new Article(15, "the range", "....", "published", "bob", "General",new Commentaire(101, "article exelent", "bob"),
-                new Commentaire(102, "bon article", "bob")),
+            new Article(15, "the range", "....", "published", "bob", "General",[new Commentaire(101, "article exelent", "bob"),
+                new Commentaire(102, "bon article", "bob")]),
             new Article(22, "power", "....", "draft", "john", "Sport"),
             new Article(1, "Worlf cup 2022", "....", "published", "aya", "Finance")
         ];
@@ -271,7 +271,6 @@ public function ModifierMonCommenataire($id,$newcommentaire){
                 foreach($article->getComments() as $comnt){
                     if($comnt->getId()==$id){
                         $comnt->UpdateComment($newcommentaire);
-                        return;
                     }
                    
                 }
@@ -280,6 +279,7 @@ public function ModifierMonCommenataire($id,$newcommentaire){
           
         }
         echo "comment de $id introuvable!!";
+         return;
     }
    echo "u don't have accees to update this comments";
 }
