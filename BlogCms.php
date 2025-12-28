@@ -1,5 +1,4 @@
 <?php
-// Class Commentaire
 class Category {
     
     public int $id;
@@ -13,13 +12,12 @@ class Category {
     public function getName(){return $this->name;}
 }
 
-// Class Commentaire
 class Commentaire {
     protected int $id;
     public string $content;
     public string $auteur;
     
-    public function __construct($id='', $content,$auteur='') {
+    public function __construct($id='', $content,$auteur="") {
         $this->id = $id;
         $this->content = $content;
         $this->auteur=$auteur;
@@ -41,16 +39,24 @@ class Article {
     public string $categories;
     private array $comments=[];
 
-    public function __construct($id, $title, $content, $status, $auteurName, $categories = "", $comments = []) {
+    public function __construct($id, $title, $content, $status="draft", $auteurName, $categories = "", $comments = []) {
         $this->id = $id;
         $this->title = $title;
         $this->content = $content;
         $this->status = $status;
         $this->auteurName = $auteurName;
         $this->categories = $categories;
-        $this->comments[]= $comments;
-    }
+        if (is_array($comments) && !empty($comments)) {
+            if ($comments instanceof Commentaire) {
+                $this->comments[] = $comments;
+            } else {
+                $this->comments = $comments;
+            }
+        }
 
+       
+    }
+    public  function publierArticle(){ $this->status="published";}
     public function getId() { return $this->id; }
     public function getTitle() { return $this->title;}
     public function getStatus() { return $this->status;}
@@ -91,18 +97,9 @@ class User {
 
 // Class Auteur
 class Auteur extends User {
-    private array $Myarticle=[];
-
     function __construct($id, $username, $email, $password, $role = "auteur"){
         parent::__construct($id, $username, $email, $password, $role);
-    }
-    
-    public function createArticle(Article $article) {
-        $this->myArticles[] = $article;
-        echo "Article '{$article->title}' créé par {$this->username}.\n";
-    }
-
-  
+    } 
 }
 
 //Class Moderateur
@@ -205,22 +202,87 @@ class Collection {
 
 
     public function afficherMesArticles(){
-        echo "\n--- Articles de {$this->current_user->getUsername()} ---\n";
-         echo "ID   | Title                | Author          \n";
-        echo "-----+----------------------+-----------------\n";
-        foreach ($this->articles as $article) {
-        if($this->current_user->getUsername()==$article->getAuteurName()){
+    if (!$this->current_user) return;
+
+    echo "\n--- Articles de {$this->current_user->getUsername()} ---\n";
+    echo "ID   | Title                | Author          | Status    \n";
+    echo "-----+----------------------+-----------------+-----------\n";
+    foreach ($this->articles as $article) {
+        if($this->current_user->getUsername() == $article->getAuteurName()){
             printf(
-                "%-4s | %-20s | %-15s \n",
+                "%-4s | %-20s | %-15s | %-10s \n",
                 $article->getId(), 
                 substr($article->getTitle(), 0, 20), 
-                $article->getAuteurName()
-            );}
+                $article->getAuteurName(),
+                $article->getStatus() 
+            );
+        }
+    }
+}
+
+
+public function creerNouvelArticle($title, $content, $status, $category, $auteurForce = null) { 
+    if ($this->current_user === null) {
+        echo "ERREUR : Les visiteurs ne peuvent pas créer d'articles.\n";
+        return;
+    }
+    $nomAuteur = $this->current_user->getUsername();
+    if (($this->current_user instanceof Admin || $this->current_user instanceof Editeur) && $auteurForce !== null) {
+        $nomAuteur = $auteurForce;
+    }
+    $newId = 0;
+    foreach($this->articles as $art) {
+        if($art->getId() > $newId) $newId = $art->getId();
+    }
+    $newId++;
+    $nouvelArticle = new Article($newId, $title, $content,  $status,  $nomAuteur,  $category);
+    $this->articles[] = $nouvelArticle;
+    echo "SUCCÈS : Article '$title' créé (ID: $newId) par $nomAuteur.\n";
+}
+
+
+public function afficher_MesCommentaire() {
+    if ($this->current_user === null) {
+        echo "Erreur : Vous n'êtes pas connecté.\n";
+        return;
+    }
+    echo "\n--- Voici vos commentaires ---\n";
+    $trouve = false;
+
+    foreach($this->articles as $article) {
+        foreach($article->getComments() as $comnt) {
+            if ($comnt instanceof Commentaire) {
+                if ($comnt->getAuteur() === $this->current_user->getUsername()) { 
+                    echo "ID: " . $comnt->getId() . " | Sur l'article ID: " . $article->getId() . " | Contenu: " . $comnt->getContent() . "\n";
+                    $trouve = true;
+                }
+            }
         }
     }
 
+    if (!$trouve) {
+        echo "Vous n'avez posté aucun commentaire.\n";
+    }
+}   
+public function ModifierMonCommenataire($id,$newcommentaire){
+    if($this->current_user instanceof Auteur){
+       foreach($this->articles as $article){
+            if($this->current_user->getUsername()==$article->getAuteurName() ){
+                foreach($article->getComments() as $comnt){
+                    if($comnt->getId()==$id){
+                        $comnt->UpdateComment($newcommentaire);
+                        return;
+                    }
+                   
+                }
 
-
+            }
+          
+        }
+        echo "comment de $id introuvable!!";
+    }
+   echo "u don't have accees to update this comments";
+}
 
 
 
@@ -272,18 +334,50 @@ class Collection {
         return $this->current_user !== null ? "Déconnexion OK\n" : "Problème déconnexion\n";
     }
 
-    public function displayAllArticles(): void {
-        echo "ID   | Title                | Author          \n";
-        echo "-----+----------------------+-----------------\n";
-        foreach ($this->articles as $article) {
+   public function displayAllArticles(): void {
+    echo "ID   | Title                | Author          \n";
+    echo "-----+----------------------+-----------------\n"; 
+    $trouve = false; 
+    foreach ($this->articles as $article) {
+        if($article->getStatus() == "published"){
             printf(
                 "%-4s | %-20s | %-15s \n",
                 $article->getId(), 
                 substr($article->getTitle(), 0, 20), 
-                $article->getAuteurName()
+                $article->getAuteurName()  
             );
+            $trouve = true;
         }
     }
+    if (!$trouve) {
+        echo "Aucun article publié.\n";
+    }
+}
+
+
+
+
+public function displayAllArticles2(): void {
+    if(($this->current_user instanceof Admin) || ($this->current_user instanceof Editeur)){
+    echo "ID   | Title                | Author          \n";
+    echo "-----+----------------------+-----------------\n"; 
+    $trouve = false; 
+    foreach ($this->articles as $article) {
+       
+            printf(
+                "%-4s | %-20s | %-15s \n",
+                $article->getId(), 
+                substr($article->getTitle(), 0, 20), 
+                $article->getAuteurName()  
+            );
+            $trouve = true;
+       
+    }
+    if (!$trouve) {
+        echo "Aucun article publié.\n";
+    }
+    }
+}
 
 
   public function Statistique() {
@@ -413,10 +507,12 @@ class Collection {
         }
    }
 
+   
+
     public function cree_Commentaire($contenu ,$idArticle){
        foreach($this->articles as $art){
             if($art->getId()==$idArticle){
-              $comm=new Commentaire(rand(1, 1000),$contenu);
+              $comm=new Commentaire(rand(1, 1000),$contenu,$this->current_user->getRole());
                $art->addComment( $comm);
                echo "commentaire a ete ajouter avec Succès";
                return;
@@ -425,6 +521,15 @@ class Collection {
          echo "article introuvable!!";
     }
 
+
+    public function publierArticle($id){
+        foreach($this->articles as $article){
+            if($article->getId()==$id){
+                $article->publierArticle();
+            }
+        }
+    
+    }
 
 
 
@@ -521,13 +626,12 @@ class Menu {
     }
 
     private function afficherMenuVisiteur() {
-        echo "\n=== MENU PRINCIPAL ===\n";
+        echo "\n=== MENU VISITEUR ===\n";
         echo "1. Se connecter\n";
         echo "2. Voir les articles (Lecture seule)\n";
-        echo "3.cree un commentaire \n";
-        echo "4.Afficher les commentaire\n";
-        echo "5.afficher les categories\n";
-        echo "6.Statistiques\n";
+        echo "3. Afficher les commentaires\n";
+        echo "4. Afficher les catégories\n";
+        echo "5. Statistiques\n";
         echo "0. Quitter\n"; 
         echo "----------------------\n";
 
@@ -538,28 +642,20 @@ class Menu {
                 $user = $this->prompt("Username");
                 $pass = $this->prompt("Password");
                 $this->collection->login($user, $pass);
-                $this->pause();
                 break;
             case '2':
                 $this->collection->displayAllArticles();
                 $this->pause();
                 break;
             case '3':
-                $this->collection->displayAllArticles();
-                $commentaire = $this->prompt("contenu de commentaire:");
-                $id = $this->prompt("id de l'article:");
-                $this->collection->cree_Commentaire($commentaire,$id);
-                $this->pause();
-                break; 
-                case '4':
                 $this->collection->Display_Commentaires();
                 $this->pause();
                 break; 
-                case '5':
+            case '4':
                 $this->collection->afficher_Category();
                 $this->pause();
                 break;
-                case '6':
+            case '5':
                 $this->collection->Statistique();
                 $this->pause();
                 break;   
@@ -575,108 +671,161 @@ class Menu {
     private function afficherMenuUtilisateur(User $user) {
         echo "\n=== ESPACE MEMBRE : " . $user->getUsername() . " (" . $user->getRole() . ") ===\n";
         
-        echo "1. Afficher tous les articles\n";
-        
+        // --- OPTIONS COMMUNES ( ---
+        echo "1. Afficher les articles publier \n";
+        echo "2. Afficher toutes les catégories\n";
+        echo "3. Afficher tous les commentaires\n";
+        echo "4. Créer un commentaire (Global)\n";
+        echo "5. Créer un article (Nouveau)\n"; 
 
-        if ($user instanceof Admin) {
-            echo "2. [ADMIN] Afficher les utilisateurs\n";
-            echo "3. [ADMIN] Créer un utilisateur\n";
-            echo "4. [ADMIN] Supprimer un utilisateur\n";
-
-        }
-        
-
-        if ($user instanceof Admin || $user instanceof Editeur) {
-            echo "5. [GESTION] Supprimer un article (Global)\n";
-            echo "11. [GESTION] cree un category (Global)\n";
-            echo "12. [GESTION] modifier un commentaire (Global)\n";
-        }
-
-
+        // --- OPTIONS AUTEUR  ---
         if ($user instanceof Auteur) {
             echo "6. [AUTEUR] Mes articles\n";
+            echo "00. Afficher les articles (publier/draft) \n";
             echo "7. [AUTEUR] Supprimer un de mes articles\n";
+            echo "8. [AUTEUR] Modifier un de mes commentaires\n";
         }
 
-        echo "8. Afficher tous les categories\n";
-        echo "9. Se déconnecter\n";
-        echo "0. Quitter\n";
+        // --- OPTIONS GESTION (Admin/Editeur) ---
+        if ($user instanceof Admin || $user instanceof Editeur) {
+            echo "9.  [GESTION] Supprimer un article (Global)\n";
+            echo "10. [GESTION] Créer une catégorie\n";
+            echo "11. [GESTION] Modifier un commentaire (Global)\n";
+             echo "99. [GESTION] publier un article (Global)\n";
+        }
+
+        
+        if ($user instanceof Admin) {
+            echo "12. [ADMIN] Afficher les utilisateurs\n";
+            echo "13. [ADMIN] Créer un utilisateur\n";
+            echo "14. [ADMIN] Supprimer un utilisateur\n";
+        }
+
+        echo "15. Se déconnecter\n";
+        echo "0.  Quitter\n";
         echo "----------------------\n";
 
         $choix = $this->prompt("Votre choix");
 
         switch ($choix) {
+           
             case '1':
                 $this->collection->displayAllArticles();
                 break;
-            
             case '2':
-                if ($user instanceof Admin) {
-                    $this->collection->displayAllUsers();
-                } else { echo "Accès refusé.\n"; }
+                $this->collection->afficher_Category();
                 break;
-
             case '3':
-                if ($user instanceof Admin) {
-                    $this->creerUtilisateurWizard();
-                } else { echo "Accès refusé.\n"; }
+                $this->collection->Display_Commentaires();
                 break;
-
             case '4':
-                if ($user instanceof Admin) {
-                    $this->collection->displayAllUsers();
-                    $id = (int)$this->prompt("ID de l'utilisateur à supprimer");
-                    $this->collection->supprimer_utilisateurs($id);
-                } else { echo "Accès refusé.\n"; }
+                $this->collection->displayAllArticles();
+                $id = $this->prompt("ID de l'article");
+                $commentaire = $this->prompt("Votre commentaire");
+                $this->collection->cree_Commentaire($commentaire, $id);
+                break;
+            case '5':
+             
+                echo "\n--- CRÉATION D'UN ARTICLE ---\n";
+                $title = $this->prompt("Titre");
+                $content = $this->prompt("Contenu");
+                $category = $this->prompt("Catégorie (ex: Sport)");
+                
+                echo "Statut ? (1: draft, 2: published) : ";
+                $s = trim(fgets(STDIN));
+                $status = ($s == '2') ? 'published' : 'draft';
+
+                $auteurForce = null;
+                if ($user instanceof Admin || $user instanceof Editeur) {
+                    echo "Attribuer à un autre auteur ? (o/n) : ";
+                    if (strtolower(trim(fgets(STDIN))) == 'o') {
+                        $auteurForce = $this->prompt("Nom de l'auteur cible");
+                    }
+                }
+                
+                $this->collection->creerNouvelArticle($title, $content, $status, $category, $auteurForce);
                 break;
 
-            case '5':
+                case '99': echo "est que tu veut Publier ce article ? (o/n) : ";
+                if (strtolower(trim(fgets(STDIN))) == 'o') {
+                        $id = $this->prompt("Donner son id");
+                    }
+                    $this->collection->publierArticle($id);
+                break;    
+
+            // --- AUTEUR ---
+            case '6':
+                if ($user instanceof Auteur) $this->collection->afficherMesArticles();
+                else echo "Accès refusé.\n";
+                break;
+   
+            case '7':
+                if ($user instanceof Auteur) {
+                    $this->collection->afficherMesArticles();
+                    $id = (int)$this->prompt("ID de VOTRE article à supprimer");
+                    $this->collection->supprimerArticleParAuteur($id);
+                } else echo "Accès refusé.\n";
+                break;
+            case '8':
+                if ($user instanceof Auteur) {
+                    $this->collection->afficher_MesCommentaire();
+                    $id = $this->prompt("ID du commentaire à modifier");
+                    $content = $this->prompt("Nouveau contenu");
+                    $this->collection->ModifierMonCommenataire($id, $content);   
+                } else echo "Accès refusé.\n";
+                break;
+
+            // --- GESTION ---
+            case '9':
                 if ($user instanceof Admin || $user instanceof Editeur) {
                     $this->collection->displayAllArticles();
                     $id = (int)$this->prompt("ID de l'article à supprimer");
                     $this->collection->supprimerArticle($id);
-                } else { echo "Accès refusé.\n"; }
+                } else echo "Accès refusé.\n";
+                break;
+            case '10':
+                if ($user instanceof Admin || $user instanceof Editeur) {
+                    $title = $this->prompt("Nom de la catégorie");  
+                    $this->collection->cree_Category($title);
+                } else echo "Accès refusé.\n";
                 break;
             case '11':
-                    if ($user instanceof Admin || $user instanceof Editeur) {
-                      $title = $this->prompt("donner le titre:");  
-                    $this->collection->cree_Category($title);
-                } else { echo "Echec !!.\n"; }
-            
+                if ($user instanceof Admin || $user instanceof Editeur) {
+                    $this->collection->Display_Commentaires();
+                    $id = $this->prompt("ID du commentaire à modifier"); 
+                    $content = $this->prompt("Nouveau contenu"); 
+                    $this->collection->modifiercomments($id, $content);
+                } else echo "Accès refusé.\n";
+                break;
 
+            // --- ADMIN ---
             case '12':
-                    if ($user instanceof Admin || $user instanceof Editeur) {
-                        $this->collection->afficher_commentaires();
-                      $id = $this->prompt("donner id de commentaire a modifier :"); 
-                      $newContent = $this->prompt("donner nouveau commentaire :"); 
-                    $this->collection->modifiercomments($id,$newContent);
-                } else { echo "Echec !!.\n"; }    
-            case '6':
-                if ($user instanceof Auteur) {
-                    $this->collection->afficherMesArticles(); 
-                }
+                if ($user instanceof Admin) $this->collection->displayAllUsers();
+                else echo "Accès refusé.\n";
+                break;
+            case '13':
+                if ($user instanceof Admin) $this->creerUtilisateurWizard();
+                else echo "Accès refusé.\n";
+                break;
+            case '00':
+                $id=prompt("donner id de l'article a publier:");
+                $this->collection->publierArticle($id);
+                break;
+            case '14':
+                if ($user instanceof Admin) {
+                    $this->collection->displayAllUsers();
+                    $id = (int)$this->prompt("ID de l'utilisateur à supprimer");
+                    $this->collection->supprimer_utilisateurs($id);
+                } else echo "Accès refusé.\n";
                 break;
 
-            case '7':
-                if ($user instanceof Auteur) {
-                    $this->collection->displayAllArticles();
-                    $id = (int)$this->prompt("ID de VOTRE article à supprimer");
-                    $this->collection->supprimerArticleParAuteur($id);
-                }
-                break;
-
-            case '8':
-            $this->collection->afficher_Category();
-            break;
-
-            case '9':
+            // --- SYSTEM ---
+            case '15':
                 $this->collection->logout();
                 echo "Déconnexion réussie.\n";
                 break;
-
             case '0':
                 exit;
-
             default:
                 echo "Choix invalide.\n";
         }
@@ -684,21 +833,19 @@ class Menu {
     }
 
     private function creerUtilisateurWizard() {
-        echo "\n--- Création d'un nouvel utilisateur ---\n";
-        $roleType = $this->prompt("Rôle (1: Admin, 2: Editeur, 3: Auteur)");
-        $username = $this->prompt("Username");
-        $email = $this->prompt("Email");
-        $password = $this->prompt("Password");
+        echo "\n--- Nouveau Compte ---\n";
+        $r = $this->prompt("Rôle (1:Admin, 2:Editeur, 3:Auteur)");
+        $u = $this->prompt("Username");
+        $e = $this->prompt("Email");
+        $p = $this->prompt("Password");
         $id = rand(100, 999); 
-
         $newUser = null;
-        switch($roleType) {
-            case '1': $newUser = new Admin($id, $username, $email, $password); break;
-            case '2': $newUser = new Editeur($id, $username, $email, $password); break;
-            case '3': $newUser = new Auteur($id, $username, $email, $password); break;
-            default: echo "Rôle invalide, annulation.\n"; return;
+        switch($r) {
+            case '1': $newUser = new Admin($id, $u, $e, $p); break;
+            case '2': $newUser = new Editeur($id, $u, $e, $p); break;
+            case '3': $newUser = new Auteur($id, $u, $e, $p); break;
+            default: echo "Rôle invalide.\n"; return;
         }
-
         $this->collection->cree_utilisateurs($newUser);
     }
 
@@ -708,10 +855,10 @@ class Menu {
     }
 
     private function clearScreen() {
-        echo "\n\n\n";
+        echo "\n\n========================================\n\n";
     }
 }
 
-// --- LANCEMENT DU MENU ---
 $menu = new Menu();
 $menu->start();
+?>
