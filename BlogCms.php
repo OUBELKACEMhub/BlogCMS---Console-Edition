@@ -359,23 +359,27 @@ public function ModifierMonCommenataire($id,$newcommentaire){
 
 public function displayAllArticles2(): void {
     if(($this->current_user instanceof Admin) || ($this->current_user instanceof Editeur)){
-    echo "ID   | Title                | Author          \n";
-    echo "-----+----------------------+-----------------\n"; 
-    $trouve = false; 
-    foreach ($this->articles as $article) {
-       
+        
+        echo "ID   | Title                | Author          | Status    \n";
+        echo "-----+----------------------+-----------------+-----------\n"; 
+        
+        $trouve = false; 
+        foreach ($this->articles as $article) {
             printf(
-                "%-4s | %-20s | %-15s \n",
+                "%-4s | %-20s | %-15s | %-10s \n", 
                 $article->getId(), 
                 substr($article->getTitle(), 0, 20), 
-                $article->getAuteurName()  
+                $article->getAuteurName(),
+                $article->getStatus() 
             );
             $trouve = true;
-       
-    }
-    if (!$trouve) {
-        echo "Aucun article publié.\n";
-    }
+        }
+
+        if (!$trouve) {
+            echo "Aucun article trouvé.\n";
+        }
+    } else {
+        echo "Accès refusé : Seuls les Admins et Editeurs peuvent voir ça.\n";
     }
 }
 
@@ -691,6 +695,7 @@ class Menu {
             echo "9.  [GESTION] Supprimer un article (Global)\n";
             echo "10. [GESTION] Créer une catégorie\n";
             echo "11. [GESTION] Modifier un commentaire (Global)\n";
+            echo "98. [GESTION] afficher tous articles (Global)\n";
              echo "99. [GESTION] publier un article (Global)\n";
         }
 
@@ -807,10 +812,15 @@ class Menu {
                 if ($user instanceof Admin) $this->creerUtilisateurWizard();
                 else echo "Accès refusé.\n";
                 break;
+             case '98':
+                $this->collection->displayAllArticles2();
+                break;
             case '00':
-                $id=prompt("donner id de l'article a publier:");
+                $this->collection->displayAllArticles2();
+                $id = (int)$this->prompt("donner id de l'article a publier:");
                 $this->collection->publierArticle($id);
                 break;
+                
             case '14':
                 if ($user instanceof Admin) {
                     $this->collection->displayAllUsers();
